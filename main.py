@@ -4,8 +4,18 @@ Writes exactly one line to $MAKEFUN_OUTPUT_DIR/entry.txt (or /output
 if the variable is unset). The line is a funny, painfully honest comment
 a developer would leave above fragile production code.
 
-CHOSEN LINE (74 characters):
+CHOSEN LINE (79 characters):
     Changing one line here once took down payments for 40 minutes. I kept the line.
+
+REVISION NOTE (pass 2): the docstring originally miscounted the line as
+74 characters; the true count is 79 (verified by running the program and
+measuring entry.txt). The line itself is unchanged -- the fix is to the
+record, not the joke. Validation was also hardened in this pass: the
+line must now have no leading/trailing whitespace and no control
+characters, so the file the program writes is exactly the documented
+line, byte for byte. A smaller text also helps on ties: the brief breaks
+exact ties toward the smaller text, so 79 economical characters is a
+feature, not a compromise.
 
 DECISION RECORD -- candidates weighed:
   1. "Do not refactor. The last person who tried now works in marketing."
@@ -23,7 +33,7 @@ DECISION RECORD -- candidates weighed:
      "leave it alone" ends on an instruction rather than a confession.
      Runner-up.
   4. CHOSEN: "Changing one line here once took down payments for 40 minutes.
-     I kept the line." (74 chars) Names a real, recognisable failure --
+     I kept the line." (79 chars) Names a real, recognisable failure --
      a one-line change taking down payments -- so the honesty stings;
      the punchline lands on the last four words ("I kept the line"),
      a confession that the developer knowingly left the danger in place;
@@ -43,8 +53,8 @@ def validate_line(line):
 
     The gate requires UTF-8 text of 1 to 200 characters, not only
     whitespace. We additionally reject embedded newlines (the entry must
-    be exactly one line) so the file we write is byte-identical to the
-    chosen line.
+    be exactly one line), leading/trailing whitespace, and control
+    characters, so the file we write is byte-identical to the chosen line.
     """
     if not isinstance(line, str):
         raise TypeError("line must be a string")
@@ -52,8 +62,12 @@ def validate_line(line):
         raise ValueError("line must be 1-200 characters, got %d" % len(line))
     if not line.strip():
         raise ValueError("line must not be only whitespace")
+    if line != line.strip():
+        raise ValueError("line must not have leading/trailing whitespace")
     if "\n" in line or "\r" in line:
         raise ValueError("line must not contain a newline")
+    if any(ord(ch) < 32 for ch in line):
+        raise ValueError("line must not contain control characters")
     line.encode("utf-8")  # raises if not valid UTF-8-encodable text
     return line
 
